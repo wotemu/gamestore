@@ -1,0 +1,48 @@
+----- Some final changes -------
+
+1. Prevent developer from deleting games (easiest workaround) -> Alex
+2. Finish Developer UI, optimize for mobile and desktop, polish UI. --> Umer
+3. Facebook integration (third-party login) -> Alex, Tamire
+4. README, code comments, data model design. -> Tamire , Alex
+5. Fix HTTPS rejecting the game to be loaded via HTTP (Inside the Heroku production) (Can downgrade to HTTP. Solved)
+6. Add anonymous catalog browsing without being authenticated. -> Alex
+7. Search + category update for a game (Model update). -> All of us.
+8. Polish and test Heroku before 26th of February.
+
+Here is the game served over HTTPS for testing the service:
+https://grader-host.cs.hut.fi/static/wsd/example_game.html
+
+
+
+-----------------------------------
+
+
+DEVELOPER APP:
+/developer ---> basic welcome page
+/developer/mygames ---> inventory of all published games
+/developer/publish ----> Basic pulish form (validation both???)
+/developer/publish/edit/{id} -------> A page where a developer can delete, update a game.
+
+--------------------Blind urls-------------------------
+/developer/publish/create  ----- POST a new game
+/developer/publish/update/{id} ------- PUT to update a field (title, price, url ...)
+/developer/publish/delete/{id} ------- DELETE request to remove a game (NOTE: keep reference for a player)
+
+PLAYER APP:
+
+/ ------> Welcome page for a player
+/mygames -------> See all purchased games
+/catalog -------> Shows all available games (from all developers)
+/catalog/{game_id} ----> A page which gives detail view of a game and has a button to buy.
+/play/{game_id} ----->  (Check transaction table first!) Detail view for gameplay. (Best scores, JS code)
+
+PLAY GAME SERVICE:
+(To be designed)
+
+/service/{game_id}/{player_id}/score  --- post a new score (read a score)
+/service/{game_id}/{player_id}/state
+/service/{game_id}/top_scores ---> get top scores from a game
+
+---------------Blind urls----------------
+(Payment service mock) Find out how it works.
+We may be posting to the mock Payment gateway.

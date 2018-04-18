@@ -1,0 +1,144 @@
+{% extends "shop/player_base.html" %}
+{% block content %}
+
+
+<h1 class="title">Play the game {{ game.title }} in the iFrame</h1>
+<iframe class="box" id="game_frame" width="500" height="400" src="{{ game.url }}"></iframe>
+<h3 class="subtitle">High Scores for {{ game.title }}</h3>
+<ul>
+    {% for state in states %}
+        <li><p style="color: #1ca64c" class="subtitle">{{ state.score }}</p> by {{ state.player.user }}</li>
+    {% endfor %}
+</ul>
+<script>
+    window.addEventListener("message", function (e) {
+        //Successfull message for LOAD_REQUEST var msg = {"messageType":"LOAD", "gameState":{"score":40.0, "playerItems":["rock","more","data"]}}
+        //ERROR message var msg = {"messageType":"ERROR", "info":"failed to load"}
+        //origin of the iframe for the game test "http://webcourse.cs.hut.fi"
+        //iframe.contentWindow.postMessage(message, "*") ---> used to send message from parent to a target iframe.
+        let messageType = e.data.messageType;
+        let origin = e.origin;
+        let getCSRFToken = function () {
+            if (!document.cookie) {
+                return null;
+            }
+            return document.cookie.split("token=")[1];
+        }
+        let iframe = document.getElementById("game_frame");
+        let url = window.location.pathname;
+        let game_id = url.split("/")[2];
+        let csrfToken = getCSRFToken();
+        console.log(origin);
+
+        switch (messageType) {
+            case "SETTING":
+                let resolution = e.data.options;
+                let {width, height} = resolution;
+                iframe.width = width;
+                iframe.height = height;
+                console.log("SETTING arrived");
+                break;
+            case "SAVE":
+                let state = event.data.gameState;
+                let body = JSON.stringify({
+                    game_id: parseInt(game_id),
+                    state: state
+                });
+                console.log(body)
+                if (csrfToken === null) {
+                    throw new Error("The token is not present");
+                } else {
+                    fetch(window.location.origin + "/service/state", {
+                        method: 'post',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': "application/json",
+                            'Accept': "application/json"
+                        },
+                        credentials: 'same-origin',
+                        body: body
+                    }).then(function (res) {
+                        return res.json()
+                    }).then(function (json) {
+                        console.log(json);
+                        alert("State updated");
+                    }).catch(function (err) {
+                        console.log(err)
+                    })
+                }
+                console.log("SAVE arrived");
+                break;
+            case "LOAD_REQUEST":
+                if (csrfToken === null) {
+                    throw new Error();
+                } else {
+                    fetch(window.location.origin + "/service/load", {
+                        method: 'post',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': "application/json",
+                            'Accept': "application/json"
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            game_id: parseInt(game_id)
+                        })
+                    }).then(function (res) {
+                        return res.json();
+                    }).then(function (json) {
+                        console.log(json);
+                        if (json.success) {
+                            let msg = {"messageType": "LOAD", "gameState": json.state}
+                            iframe.contentWindow.postMessage(msg, "*");
+                            alert(json.info);
+                        } else {
+                            let msg = {"messageType": "ERROR", "info": json.info};
+                            iframe.contentWindow.postMessage(msg, "*");
+                        }
+
+                    }).catch(function (err) {
+                        console.log(err)
+                    })
+
+                }
+                console.log("LOAD_REQUEST arrived");
+
+                break;
+            case "SCORE":
+                let score = event.data.score;
+                if (csrfToken === null) {
+                    throw new Error();
+                } else {
+                    fetch(window.location.origin + "/service/score", {
+                        method: 'post',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': "application/json",
+                            'Accept': "application/json"
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            score: score,
+                            game_id: parseInt(game_id)
+                        })
+                    }).then(function (res) {
+                        return res.json();
+                    }).then(function (json) {
+                        if (json.created) {
+                            alert("Score updated");
+                        } else {
+                            alert("Error");
+                        }
+                    }).catch(function (err) {
+                        console.log(err)
+                    })
+                }
+                console.log("SCORE arrived");
+                break;
+        }
+    })
+</script>
+{% endblock content %}
